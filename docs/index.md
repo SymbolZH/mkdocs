@@ -15,7 +15,7 @@ DataPilot 是一个面向金融等多个领域，进行数据分析和知识管�
 
     推荐使用如下命令启动（入口为 [`datapilot/workflow.py`](datapilot/workflow.py)）：
 
-    ```bash
+    ``` bash
     # PROJECT_ROOT为项目所在路径
     cd $PROJCET_ROOT
     export $PATHPATH=$PROJECT_ROOT/datapilot
@@ -26,7 +26,7 @@ DataPilot 是一个面向金融等多个领域，进行数据分析和知识管�
 
     在 `workflow.py` 文件，在 `__main__` 部分修改 `user_query` 变量进行交互
 
-    ```python
+    ``` python
     if __name__ == "__main__":
         user_query = "请输入您的分析任务"
         # 示例1：数据分析任务
@@ -80,7 +80,7 @@ DataPilot 是一个面向金融等多个领域，进行数据分析和知识管�
 
 
 
-## LangGraphRouter
+### LangGraphRouter
 
 - **职责**：负责对整个工作节点的流转进行调度。
 
