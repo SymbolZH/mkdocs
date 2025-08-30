@@ -1,6 +1,6 @@
 # DataPilot
 
-DataPilot 是一个面向金融等多个领域，进行数据分析和知识管理的智能代理系统，支持自动化数据表、工具、知识库的注册、管理和查询，集成了知识图谱、社区报告、脚本关系抽取等多种功能，适用于企业级数据治理和智能分析场景。
+DataPilot 是一个面向金融等多个领域，进行数据分析和知识管理的智能代理系统。支持自动化数据表、工具、知识库的注册、管理和查询，集成了知识图谱、社区报告、脚本关系抽取等多种功能，适用于企业级数据治理和智能分析场景。
 
 ## 主要特性
 
@@ -11,41 +11,77 @@ DataPilot 是一个面向金融等多个领域，进行数据分析和知识管�
 
 ## 快速开始
 
-1. **运行主流程**
+### **环境配置**
 
-    推荐使用如下命令启动（入口为 [`datapilot/workflow.py`](datapilot/workflow.py)）：
+``` 
+a2a==0.44
+a2a-sdk
+ddgs==9.5.4
+elasticsearch==9.1.0
+fastapi==0.116.1
+httpx==0.28.1
+langchain==0.3.27
+langchain_community==0.3.29
+langchain_core==0.3.75
+langchain_mcp_adapters==0.1.9
+langchain_openai==0.3.32
+langgraph==0.6.6
+leidenalg==0.10.2
+loguru==0.7.3
+numpy==2.3.2
+openai==1.102.0
+pandas==2.3.2
+pydantic==2.11.7
+python_igraph==0.11.9
+pyvis==0.3.2
+PyYAML==6.0.2
+PyYAML==6.0.2
+scikit_learn==1.7.1
+SQLAlchemy==2.0.43
+tavily_python==0.7.11
+urllib3==2.5.0
+uvicorn==0.35.0
+pymysql
+langchain-deepseek
+```
 
-    ``` bash
-    # PROJECT_ROOT为项目所在路径
-    cd $PROJCET_ROOT
-    export $PATHPATH=$PROJECT_ROOT/datapilot
-    python -m datapilot.workflow
-    ```
+### **运行主流程**
 
-2. **用户指令**
+推荐使用如下命令启动（入口为 [`datapilot/workflow.py`](datapilot/workflow.py)）：
 
-    在 `workflow.py` 文件，在 `__main__` 部分修改 `user_query` 变量进行交互
+``` bash
+# PROJECT_ROOT为项目所在路径
+cd $PROJCET_ROOT
+export PATHPATH=$PROJECT_ROOT/datapilot
+python -m datapilot.workflow
+```
 
-    ``` python
-    if __name__ == "__main__":
-        user_query = "请输入您的分析任务"
-        # 示例1：数据分析任务
-        # user_query = "分析一下各个区域的消费水平，并生成一份报告。所有需要保存的文件都放在 /data1/agent/machengyuan/intermediate_res3 路径下"
-        
-        # 示例2：菜谱搜索任务
-        # user_query = "帮我搜索一下番茄炒鸡蛋怎么做"
-        asyncio.run(run_agent_workflow(user_query))
-    ```
+### **用户指令**
+
+在 `workflow.py` 文件，在 `__main__` 部分修改 `user_query` 即可对DataPilot下达指令
+
+``` python
+if __name__ == "__main__":
+    user_query = "请输入您的分析任务"
+    # 示例1：数据分析任务
+    # user_query = "分析一下各个区域的消费水平，并生成一份报告。所有需要保存的文件都放在 /data1/agent/machengyuan/intermediate_res3 路径下"
+    
+    # 示例2：菜谱搜索任务
+    # user_query = "帮我搜索一下番茄炒鸡蛋怎么做"
+    asyncio.run(run_agent_workflow(user_query))
+```
 
 
 ## 整体流程
 
-以下节点通过**Router**进行如图所示的流转控制，并且支持多轮反思与反馈
+![流程图](./v1.png)
+
+DataPilot整体框架如图所示，由Coordinator、Perceptor、Planner以及Invoker等关键节点实现对用户需求的分析。节点之间的流转控制由**Router**进行控制，并将在后续实现多轮反思与反馈，优化分析结果。
 
 1. **Coordinator**：接收用户需求，分析并分发任务。
 2. **Perceptor**：感知可用数据和工具，补充上下文。
-3. **Planner** ：根据感知模块制定具体任务计划。
-4. **Invoker** 执行计划，调用工具，收集结果。
+3. **Planner**：根据感知模块制定具体任务计划。
+4. **Invoker**： 执行计划，调用工具，收集结果。
 
 ## 核心组件
 
