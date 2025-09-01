@@ -4,7 +4,7 @@ DataPilot 是一个面向金融等多个领域，进行数据分析和知识管�
 
 ## 主要特性
 
-- **知识库管理**：支持 Markdown 文档分块、嵌入、检索，自动构建知识图谱。
+- **知识库管理**：支持文档分块、嵌入、检索，自动构建知识图谱。
 - **元数据管理**：自动注册数据表，抽取列描述、数据类型、可连接关系，支持 MySQL、本地 CSV。
 - **工具管理**：自动注册工具，抽取工具与数据表/列/文件的输入输出关系。
 - **可视化**：支持知识图谱和元数据关系的 HTML 可视化。
@@ -13,46 +13,22 @@ DataPilot 是一个面向金融等多个领域，进行数据分析和知识管�
 
 ### **环境配置**
 
-``` 
-a2a==0.44
-a2a-sdk
-ddgs==9.5.4
-elasticsearch==9.1.0
-fastapi==0.116.1
-httpx==0.28.1
-langchain==0.3.27
-langchain_community==0.3.29
-langchain_core==0.3.75
-langchain_mcp_adapters==0.1.9
-langchain_openai==0.3.32
-langgraph==0.6.6
-leidenalg==0.10.2
-loguru==0.7.3
-numpy==2.3.2
-openai==1.102.0
-pandas==2.3.2
-pydantic==2.11.7
-python_igraph==0.11.9
-pyvis==0.3.2
-PyYAML==6.0.2
-PyYAML==6.0.2
-scikit_learn==1.7.1
-SQLAlchemy==2.0.43
-tavily_python==0.7.11
-urllib3==2.5.0
-uvicorn==0.35.0
-pymysql
-langchain-deepseek
+使用uv基于项目中`pyproject.toml`文件快速配置环境
+
+``` bash
+# PROJECT_ROOT为项目所在路径
+cd $PROJCET_ROOT
+uv sync
+source .venv/bin/activate
 ```
+
 
 ### **运行主流程**
 
 推荐使用如下命令启动（入口为 [`datapilot/workflow.py`](datapilot/workflow.py)）：
 
 ``` bash
-# PROJECT_ROOT为项目所在路径
-cd $PROJCET_ROOT
-export PATHPATH=$PROJECT_ROOT/datapilot
+export PYTHONPATH=$PROJECT_ROOT/datapilot
 python -m datapilot.workflow
 ```
 
@@ -76,23 +52,18 @@ if __name__ == "__main__":
 
 ![流程图](./v1.png)
 
-DataPilot整体框架如图所示，由Coordinator、Perceptor、Planner以及Invoker等关键节点实现对用户需求的分析。节点之间的流转控制由**Router**进行控制，并将在后续实现多轮反思与反馈的功能，从而优化分析结果。
+DataPilot整体框架如图所示，由Coordinator、Perceptor、Planner以及Invoker等关键节点实现对用户需求的分析。节点之间的流转控制由**Router**进行控制，并将在后续实现多轮反思与反馈的功能，从而优化分析结果。各个关键节点的主要功能如下：
 
 1. **Coordinator**：接收用户需求，分析并分发任务。
 2. **Perceptor**：感知可用数据和工具，补充上下文。
 3. **Planner**：根据感知模块制定具体任务计划。
 4. **Invoker**： 执行计划，调用工具，收集结果。
 
-## 代码架构设计
-这个项目采用了分层的抽象架构，将业务逻辑与具体工作流框架实现分离，核心在于支持多种工作流框架并保持良好的可扩展性。
+## 代码核心设计
 
-其**优势**在于：
-
-- 🔄 **框架切换成本低**：只需修改配置即可切换框架
-- 📈 **易于扩展**：添加新框架时保持相同接口
-- 🎯 **业务逻辑复用**：核心逻辑不因框架变化而改变
 
 ### 核心抽象基础框架
+这个项目采用了分层的抽象架构，将业务逻辑与具体工作流框架实现分离。有效降低了框架成本，并且在添加新功能时易于拓展，核心逻辑也不会因为框架变化而改变。
 
 #### BaseNode & 各角色节点
 包括Coodinator、Perceptor等节点在内都所有角色节点都继承`BaseNode`进行实现。优势在于：
@@ -117,7 +88,7 @@ class BaseNode(ABC):
 
 **LangGraphCoordinator**
 
-- **职责**：实现**Coordinator**模块作为智能体的“大脑”，负责接收用户需求，分析当前工作流状态，并且可以进行反思（reflect）。
+- **职责**：负责接收用户需求，分析当前工作流状态，并且可以进行反思（reflect）。
 - **核心方法**：
     - `reflect(state: BaseState)`: 反思当前状态，分析需求与上下文。
 
@@ -150,9 +121,11 @@ class BaseNode(ABC):
 - **职责**：负责对整个工作节点的流转进行调度。
 
 
-#### BaseWorkflow 基础工作流
+### 工作流与工作流构建器
+
+#### 基础工作流
 工作流也继承基础工作流`BaseWorkflow`实现
-优势在于：
+。优势在于：
 
 - **完整性验证**：确保工作流配置的完整性
 - **统一管理**：集中管理所有节点和路由器
@@ -180,11 +153,44 @@ class BaseWorkflow(ABC):
         return True
 ```
 
+#### 工作流构建器
+
+
+``` python
+# 核心实现
+class WorkflowBuilder:
+    """工作流构建器"""
+
+    def __init__(self, workflow_class: type):
+        self.workflow_class = workflow_class
+        self.workflow = workflow_class(None, None)
+
+    def with_coordinator(self, coordinator: BaseCoordinator):
+        """添加协调器"""
+        self.workflow.register_node(coordinator)
+        return self
+
+    def build(self):
+        """构建并返回工作流"""
+        if not self.workflow.validate_setup():
+            raise ValueError("Workflow setup validation failed")
+        return self.workflow.build()
+
+
+# 使用方法
+workflow = await (WorkflowBuilder(LangGraphWorkflow)
+           .with_coordinator(coordinator)
+           .with_perceptor(perceptor)
+           .with_planner(planner)
+           .with_invoker(invoker)
+           .with_router(router)
+           .build())
+```
 
 
 ###  NodeFactory工厂模式
 
-
+基于工厂模式统一管理节点的创建和配置，使得与具体类实现进行解耦，并且优化了可拓展性。
 #### 抽象工厂
 
 ``` python
@@ -211,5 +217,12 @@ class LangGraphNodeFactory:
 
 
 ## 框架优势
+框架设计中分层抽象架构、工程模式等特点，使得团队在实现各个模块时可以有效地进行分工实现，不同团队可以专注于对应节点的实现，并且便于在上线前进行单元测试。虽然抽象层以及构造器的实现增加了代码复杂度，有一定的**短期成本**。但是降低了框架迁移、功能拓展的成本，可以为框架后续提高、迭代提高效率，有着**长远收益**。
 
-由于框架中的抽象层，团队在实现各个模块时可以有效地进行分工实现，不同团队可以专注于对应节点的实现，并且便于在上线前进行单元测试。虽然抽象层以及构造器的实现增加了代码复杂度，有一定的**短期成本**。但是降低了框架迁移、功能拓展的成本，可以为框架后续提高、迭代提高效率，有着**长远收益**。
+
+| 方式       | 直接实例化                     | 本框架            |
+| ---------- | ------------------------------ | -------------------------- |
+| **安全性** | 运行时发现错误                 | **构建时验证错误**             |
+| **扩展性** | 需修改多处代码                 | **只需添加新方法**             |
+| **维护性** | 散布的配置逻辑                 | **集中的构建逻辑**             |
+
